@@ -5,23 +5,23 @@ import (
 	//"fmt"
 	//"os"
 	//"time"
-	"flag"
-	"log"
 	"crypto/hmac"
 	"crypto/sha1"
-	"strings"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
+	"log"
+	"strings"
 )
 
 const SIGN_KEY = "test"
 const AUTH_TOKEN = "123"
 
 type Location struct {
-	Lat float64
-	Lng float64
+	Lat      float64
+	Lng      float64
 	Provider string
-	Imei string
+	Imei     string
 }
 
 var addr = flag.String("addr", "localhost:8082", "Address to server handle")
