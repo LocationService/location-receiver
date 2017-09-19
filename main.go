@@ -1,19 +1,16 @@
 package main
 
 import (
-	"net/http"
-	//"fmt"
-	//"os"
-	//"time"
 	"crypto/hmac"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
 	"flag"
-	"log"
-	"strings"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	"log"
+	"net/http"
+	"strings"
 )
 
 const SIGN_KEY = "test"
