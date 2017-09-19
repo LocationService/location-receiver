@@ -12,12 +12,15 @@ import (
 	"flag"
 	"log"
 	"strings"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 const SIGN_KEY = "test"
 const AUTH_TOKEN = "123"
 
 type Location struct {
+	gorm.Model
 	Lat      float64
 	Lng      float64
 	Provider string
@@ -99,28 +102,14 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println(location)
+	db, err := gorm.Open("sqlite3", "location.db")
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
 
-	//lat := r.Form["lat"]
-	//lng := r.Form["lng"]
-	//str := fmt.Sprintf("%v\tlat: %s\tlng: %s\n", time.Now(), lat, lng)
-	//
-	//f, err := os.OpenFile("locations.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	//defer f.Close()
-	//
-	//if err != nil {
-	//	log.Println("Error while open file:", err)
-	//	http.Error(w, "Internal server error", 500)
-	//	return
-	//}
-	//n, err := f.WriteString(str)
-	//if err != nil {
-	//	log.Println("Error while write to file:", err)
-	//	http.Error(w, "Internal server error", 500)
-	//	return
-	//}
-	//
-	//log.Println("Wrote", n, "bytes to file")
+	db.AutoMigrate(location)
+	db.Create(location)
 }
 
 func authRequest(r *http.Request) bool {
