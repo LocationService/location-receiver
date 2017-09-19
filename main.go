@@ -13,8 +13,8 @@ import (
 	"strings"
 )
 
-const SIGN_KEY = "test"
-const AUTH_TOKEN = "123"
+const SIGN_KEY = "ea86ec783c52d9e26607d11a1247485a"
+const AUTH_TOKEN = "f5ee5dee5f9ded00a624ff4bf34eb3d3"
 
 type Location struct {
 	gorm.Model
