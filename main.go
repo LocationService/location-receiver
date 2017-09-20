@@ -24,7 +24,7 @@ type Location struct {
 	Imei     string
 }
 
-var addr = flag.String("addr", "localhost:8082", "Address to server handle")
+var addr = flag.String("addr", "0.0.0.0:8083", "Address to server handle")
 
 func main() {
 	flag.Parse()
@@ -110,7 +110,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 }
 
 func authRequest(r *http.Request) bool {
-	authHeaders := r.Header["Authentication"]
+	authHeaders := r.Header["Authorization"]
 	if len(authHeaders) < 1 {
 		return false
 	}
