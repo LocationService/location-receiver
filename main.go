@@ -6,10 +6,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 )
 
@@ -27,16 +29,26 @@ type Location struct {
 
 const SIGN_KEY = "ea86ec783c52d9e26607d11a1247485a"
 const AUTH_TOKEN = "f5ee5dee5f9ded00a624ff4bf34eb3d3"
-const MYSQL_URL = "root:@/location_receiver?charset=utf8&parseTime=True&loc=Local"
 
 var addr = flag.String("addr", "0.0.0.0:8083", "Address to server handle")
+var dbUser = flag.String("db-user", "root", "Database User")
+var dbPassword = flag.String("db-password", "password", "Database Password")
+
+func mysqlUrl() string {
+	url := fmt.Sprintf("%s:%s@/location_receiver?charset=utf8&parseTime=True&loc=Local", *dbUser, *dbPassword)
+	return url
+}
 
 func init() {
 	var device Device
 	var location Location
-	db, err := gorm.Open("mysql", MYSQL_URL)
+
+	flag.Parse()
+
+	db, err := gorm.Open("mysql", mysqlUrl())
 	if err != nil {
 		log.Println(err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
@@ -45,7 +57,6 @@ func init() {
 }
 
 func main() {
-	flag.Parse()
 	http.HandleFunc("/", handler)
 	log.Println("Starting on", *addr)
 	log.Fatal(http.ListenAndServe(*addr, nil))
@@ -121,9 +132,10 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := gorm.Open("mysql", MYSQL_URL)
+	db, err := gorm.Open("mysql", mysqlUrl)
 	if err != nil {
 		log.Println(err)
+		os.Exit(1)
 	}
 	defer db.Close()
 
