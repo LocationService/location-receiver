@@ -132,7 +132,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	db, err := gorm.Open("mysql", mysqlUrl)
+	db, err := gorm.Open("mysql", mysqlUrl())
 	if err != nil {
 		log.Println(err)
 		os.Exit(1)
