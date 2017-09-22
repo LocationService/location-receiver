@@ -7,24 +7,42 @@ import (
 	"encoding/json"
 	"flag"
 	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"log"
 	"net/http"
 	"strings"
 )
 
-const SIGN_KEY = "ea86ec783c52d9e26607d11a1247485a"
-const AUTH_TOKEN = "f5ee5dee5f9ded00a624ff4bf34eb3d3"
+type Device struct {
+	gorm.Model
+	Imei string
+}
 
 type Location struct {
 	gorm.Model
 	Lat      float64
 	Lng      float64
-	Provider string
-	Imei     string
+	DeviceID uint
 }
 
+const SIGN_KEY = "ea86ec783c52d9e26607d11a1247485a"
+const AUTH_TOKEN = "f5ee5dee5f9ded00a624ff4bf34eb3d3"
+const MYSQL_URL = "root:@/location_receiver?charset=utf8&parseTime=True&loc=Local"
+
 var addr = flag.String("addr", "0.0.0.0:8083", "Address to server handle")
+
+func init() {
+	var device Device
+	var location Location
+	db, err := gorm.Open("mysql", MYSQL_URL)
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+
+	db.AutoMigrate(device)
+	db.AutoMigrate(location)
+}
 
 func main() {
 	flag.Parse()
@@ -59,24 +77,27 @@ func checkSignedBody(signedBody string) bool {
 	return hmac.Equal(expSign, sign)
 }
 
-func parseSignedBody(signedBody string) (*Location, bool) {
-	var location Location
+func parseSignedBody(signedBody string) (map[string]interface{}, bool) {
+	var params interface{}
 	raw := strings.Split(signedBody, ".")
 	if len(raw) < 2 {
 		log.Println("signed_body must contain sign and body only")
 		return nil, false
 	}
 	body := strings.Join(raw[1:], ".")
-	err := json.Unmarshal([]byte(body), &location)
+	err := json.Unmarshal([]byte(body), &params)
+
 	if err != nil {
 		log.Println(err)
 		return nil, false
 	}
-	return &location, true
+	return params.(map[string]interface{}), true
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
 	var signedBody string
+	var device Device
+	var location Location
 
 	if !authRequest(r) {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -93,20 +114,30 @@ func handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	location, ok := parseSignedBody(signedBody)
+	params, ok := parseSignedBody(signedBody)
+
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	db, err := gorm.Open("sqlite3", "location.db")
+	db, err := gorm.Open("mysql", MYSQL_URL)
 	if err != nil {
 		log.Println(err)
 	}
 	defer db.Close()
 
-	db.AutoMigrate(location)
-	db.Create(location)
+	db.Where("imei = ?", params["imei"]).First(&device)
+	if db.NewRecord(device) {
+		device.Imei = params["imei"].(string)
+		db.Create(&device)
+	}
+
+	location.Lat = params["lat"].(float64)
+	location.Lng = params["lng"].(float64)
+	location.DeviceID = device.ID
+
+	db.Create(&location)
 }
 
 func authRequest(r *http.Request) bool {
